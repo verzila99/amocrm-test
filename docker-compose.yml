@@ -1,0 +1,98 @@
+version: "3.9"
+services:
+    #PHP Service
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: php:8.0-fpm
+        container_name: app2
+        restart: unless-stopped
+        tty: true
+        environment:
+            SERVICE_NAME: app
+            SERVICE_TAGS: dev
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+            - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+        networks:
+            - app-network
+
+    #Nginx Service
+    webserver:
+        image: nginx:alpine
+        container_name: webserver2
+        restart: unless-stopped
+        tty: true
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./:/var/www
+            - ./nginx/conf.d/:/etc/nginx/conf.d/
+        networks:
+            - app-network
+
+    #PosgreSQL Service
+    postgres:
+        image: postgres:15.2
+        container_name: postgres2
+        command:
+            - "postgres"
+            - "-c"
+            - "max_connections=50"
+            - "-c"
+            - "shared_buffers=1GB"
+            - "-c"
+            - "effective_cache_size=4GB"
+            - "-c"
+            - "work_mem=16MB"
+            - "-c"
+            - "maintenance_work_mem=512MB"
+            - "-c"
+            - "random_page_cost=1.1"
+            - "-c"
+            - "temp_file_limit=10GB"
+            - "-c"
+            - "log_min_duration_statement=200ms"
+            - "-c"
+            - "idle_in_transaction_session_timeout=10s"
+            - "-c"
+            - "lock_timeout=1s"
+            - "-c"
+            - "statement_timeout=60s"
+            - "-c"
+            - "shared_preload_libraries=pg_stat_statements"
+            - "-c"
+            - "pg_stat_statements.max=10000"
+            - "-c"
+            - "pg_stat_statements.track=all"
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: "habrdb"
+            POSTGRES_USER: "habrpguser"
+            POSTGRES_PASSWORD: "pgpwd4habr"
+            PGDATA: "/var/lib/postgresql/data/pgdata"
+        ports:
+            - "5432:5432"
+        volumes:
+            - db_data:/var/lib/postgres
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U habrpguser -d habrdb"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        networks:
+            - app-network
+
+volumes:
+    db_data:
+        driver: "local"
+    cache_data:
+        driver: "local"
+#Docker Networks
+networks:
+    app-network:
+        driver: bridge
