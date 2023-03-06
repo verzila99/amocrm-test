@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y \
     vim \
     unzip \
     git \
-    curl
+    curl\
+    libpq-dev
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -29,7 +30,8 @@ RUN pecl install redis-5.3.7 \
 	&& docker-php-ext-enable redis xdebug\
 	&& echo "xdebug.mode=debug" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.client_host = host.docker.internal" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-RUN docker-php-ext-install pdo_mysql exif pcntl
+RUN docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
+    && docker-php-ext-install pdo pdo_pgsql pgsql
 
 ADD xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
 
@@ -38,7 +40,8 @@ ADD xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
 
 # Add user for laravel application
 RUN groupadd -g 1000 www
-RUN useradd -u 1000 -ms /bin/bash -g www www
+RUN useradd  -o -u 0 -g 0 -s /bin/bash www
+# RUN useradd -u 1000 -G ww -h /home/www -D www
 
 # Copy existing application directory contents
 COPY . /var/www
@@ -46,9 +49,12 @@ COPY . /var/www
 # Copy existing application directory permissions
 COPY --chown=www:www . /var/www
 
+RUN chown -R www:www \
+    /var/www
+
 # Change current user to www
 USER www
 
-# Expose port 9000 and start php-fpm server
-#EXPOSE 9000
-#CMD ["php-fpm"]
+EXPOSE 8080
+
+CMD ["php-fpm"]

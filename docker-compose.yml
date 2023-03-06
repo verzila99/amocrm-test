@@ -5,7 +5,6 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        image: php:8.0-fpm
         container_name: app2
         restart: unless-stopped
         tty: true
@@ -15,7 +14,7 @@ services:
         working_dir: /var/www
         volumes:
             - ./:/var/www
-            - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+            - ./php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
         networks:
             - app-network
 
@@ -77,7 +76,9 @@ services:
         ports:
             - "5432:5432"
         volumes:
-            - db_data:/var/lib/postgres
+            - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+            - ../2. Init Database:/docker-entrypoint-initdb.d
+            - .:/var/lib/postgresql/data
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U habrpguser -d habrdb"]
             interval: 10s

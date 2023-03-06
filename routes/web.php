@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LeadsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,5 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/getdeals', function () {
-    return view('welcome');
-});
+Route::post('/leads', [LeadsController::class, 'store'])->name('store-leads');
+Route::get('/leads', [LeadsController::class, 'index'])->name('index-leads');
